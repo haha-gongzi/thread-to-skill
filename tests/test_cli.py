@@ -103,6 +103,84 @@ class CLITests(unittest.TestCase):
         self.assertEqual(stats["threads"], 1)
         self.assertEqual(stats["skills"], 1)
 
+    def test_stats_by_source(self):
+        self.init_and_distill()
+
+        code, output, _ = self.run_cli(
+            "stats", "--by-source", "--json"
+        )
+        self.assertEqual(code, 0)
+        stats = json.loads(output)
+        self.assertEqual(
+            stats["by_source"],
+            {"slack": {"threads": 1, "skills": 1}}
+        )
+
+    def test_stats_by_channel(self):
+        self.init_and_distill()
+
+        code, output, _ = self.run_cli(
+            "stats", "--by-channel", "--json"
+        )
+        self.assertEqual(code, 0)
+        stats = json.loads(output)
+        self.assertEqual(
+            stats["by_channel"],
+            {"engineering": {"threads": 1, "skills": 1}}
+        )
+
+    def test_stats_timeline(self):
+        self.init_and_distill()
+
+        code, output, _ = self.run_cli(
+            "stats", "--timeline", "--json"
+        )
+        self.assertEqual(code, 0)
+        timeline = json.loads(output)["timeline"]
+
+        self.assertEqual(len(timeline), 12)
+        self.assertEqual(
+            sum(item["ingested"] for item in timeline.values()), 1
+        )
+        self.assertEqual(
+            sum(item["distilled"] for item in timeline.values()), 1
+        )
+
+    def test_stats_empty_workspace(self):
+        self.run_cli("init", "--provider", "offline")
+
+        code, output, _ = self.run_cli(
+            "stats", "--by-source", "--by-channel",
+            "--timeline", "--json"
+        )
+        self.assertEqual(code, 0)
+        stats = json.loads(output)
+
+        self.assertEqual(stats["threads"], 0)
+        self.assertEqual(stats["skills"], 0)
+        self.assertEqual(stats["by_source"], {})
+        self.assertEqual(stats["by_channel"], {})
+        self.assertEqual(len(stats["timeline"]), 12)
+
+        for item in stats["timeline"].values():
+            self.assertEqual(item["ingested"], 0)
+            self.assertEqual(item["distilled"], 0)
+
+    def test_stats_combined_flags(self):
+        self.init_and_distill()
+
+        code, output, _ = self.run_cli(
+            "stats", "--by-source", "--by-channel",
+            "--timeline", "--json"
+        )
+        self.assertEqual(code, 0)
+        stats = json.loads(output)
+
+        self.assertEqual(stats["threads"], 1)
+        self.assertEqual(stats["skills"], 1)
+        self.assertIn("by_source", stats)
+        self.assertIn("by_channel", stats)
+        self.assertIn("timeline", stats)
     def test_duplicate_merge_increments_version(self):
         thread_id, first = self.init_and_distill()
         code, output, _ = self.run_cli(

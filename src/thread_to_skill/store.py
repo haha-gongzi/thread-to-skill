@@ -367,3 +367,119 @@ class Store:
             "by_status": {row["status"]: row["count"] for row in skills},
             "by_category": {row["category"]: row["count"] for row in categories},
         }
+    
+    def stats_by_source(self) -> dict[str, Any]:
+        rows = self.conn.execute(
+            "SELECT id, source FROM threads"
+        ).fetchall()
+
+        result = {}
+        thread_sources = {}
+
+        for row in rows:
+            source = row["source"]
+            thread_sources[row["id"]] = source
+
+            if source not in result:
+                result[source] = {"threads": 0, "skills": 0}
+
+            result[source]["threads"] += 1
+
+        skills = self.conn.execute(
+            "SELECT source_threads FROM skills"
+        ).fetchall()
+
+        for skill in skills:
+            sources = {
+                thread_sources[thread_id]
+                for thread_id in json.loads(skill["source_threads"])
+                if thread_id in thread_sources
+            }
+
+            for source in sources:
+                result[source]["skills"] += 1
+
+        return result
+    
+    def stats_by_channel(self) -> dict[str, Any]:
+        rows = self.conn.execute(
+            "SELECT id, channel FROM threads"
+        ).fetchall()
+
+        result = {}
+        thread_channels = {}
+
+        for row in rows:
+            channel = row["channel"]
+            thread_channels[row["id"]] = channel
+
+            if channel not in result:
+                result[channel] = {"threads": 0, "skills": 0}
+
+            result[channel]["threads"] += 1
+
+        skills = self.conn.execute(
+            "SELECT source_threads FROM skills"
+        ).fetchall()
+
+        for skill in skills:
+            channels = {
+                thread_channels[thread_id]
+                for thread_id in json.loads(skill["source_threads"])
+                if thread_id in thread_channels
+            }
+
+            for channel in channels:
+                result[channel]["skills"] += 1
+
+        return dict(sorted(
+            result.items(),
+            key=lambda item: (-item[1]["skills"], item[0])
+        ))
+    
+    def stats_timeline(self) -> dict[str, Any]:
+        from datetime import datetime, timedelta
+
+        today = datetime.now().date()
+        monday = today - timedelta(days=today.weekday())
+
+        result = {}
+
+        for offset in range(11, -1, -1):
+            week = monday - timedelta(weeks=offset)
+            year, number, _ = week.isocalendar()
+            key = f"{year}-W{number:02d}"
+            result[key] = {"ingested": 0, "distilled": 0}
+
+        rows = self.conn.execute(
+            "SELECT ingested_at AS ts FROM threads"
+        ).fetchall()
+
+        for row in rows:
+            dt = datetime.fromisoformat(
+                row["ts"].replace("Z", "+00:00")
+            ).astimezone()
+
+            year, number, _ = dt.isocalendar()
+            key = f"{year}-W{number:02d}"
+
+            if key in result:
+                result[key]["ingested"] += 1
+
+        events = self.conn.execute(
+            "SELECT ts FROM events WHERE kind = ?",
+            ("distilled",)
+        ).fetchall()
+
+        for event in events:
+            dt = datetime.fromisoformat(
+                event["ts"].replace("Z", "+00:00")
+            ).astimezone()
+
+            year, number, _ = dt.isocalendar()
+            key = f"{year}-W{number:02d}"
+
+            if key in result:
+                result[key]["distilled"] += 1
+
+        return result

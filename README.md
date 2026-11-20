@@ -298,6 +298,9 @@ A PyPI release is planned. Until then, install from GitHub.
 | `t2s hooks install` | Write proactive-suggestion hooks for supported harnesses |
 | `t2s validate` | Check generated skills against the Agent Skills format |
 | `t2s stats` | Show workspace counts, categories, and recent events |
+| `t2s stats --by-source` | Show thread and skill counts by source |
+| `t2s stats --by-channel` | Show thread and skill counts by channel |
+| `t2s stats --timeline` | Show weekly ingestion and distillation counts |
 | `t2s doctor` | Check Python, workspace, SQLite, PATH, and provider keys |
 
 Full options: [docs/cli.md](docs/cli.md).

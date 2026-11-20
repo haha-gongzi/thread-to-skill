@@ -239,9 +239,22 @@ Checks the Agent Skills layout, frontmatter, metadata, references, and likely se
 ```bash
 t2s stats
 t2s stats --json
+t2s stats --by-source
+t2s stats --by-channel
+t2s stats --timeline
+t2s stats --by-source --by-channel --timeline --json
 ```
 
 Shows thread/skill counts, status distribution, category distribution, and recent events.
+
+Additional statistics options:
+
+- `--by-source`: Show thread and skill counts grouped by source.
+- `--by-channel`: Show thread and skill counts grouped by channel, sorted by skill count in descending order.
+- `--timeline`: Show weekly ingestion and distillation counts for the last 12 calendar weeks, including the current week. Weeks are based on local time.
+- `--json`: Output statistics in JSON format.
+
+These options can be combined. A skill associated with multiple threads from the same source or channel is counted only once within that group.
 
 ---
 

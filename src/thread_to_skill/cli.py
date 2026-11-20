@@ -565,6 +565,14 @@ def cmd_validate(args: argparse.Namespace) -> int:
 def cmd_stats(args: argparse.Namespace) -> int:
     config, store = _open(args)
     stats = store.stats()
+    if args.by_source:
+        stats["by_source"] = store.stats_by_source()
+
+    if args.by_channel:
+        stats["by_channel"] = store.stats_by_channel()
+
+    if args.timeline:
+        stats["timeline"] = store.stats_timeline()
     if args.json:
         _print(json.dumps(stats, ensure_ascii=False, indent=2))
         return 0
@@ -577,6 +585,32 @@ def cmd_stats(args: argparse.Namespace) -> int:
         _print(bold("By category"))
         rows = [[category, category_label(category), str(count)] for category, count in stats["by_category"].items()]
         _print(_table(["CATEGORY", "LABEL", "SKILLS"], rows))
+    if args.by_source:
+        _print("")
+        _print(bold("By source"))
+        rows = [
+            [source, str(data["threads"]), str(data["skills"])]
+            for source, data in stats["by_source"].items()
+        ]
+        _print(_table(["SOURCE", "THREADS", "SKILLS"], rows))
+
+    if args.by_channel:
+        _print("")
+        _print(bold("By channel"))
+        rows = [
+            [channel, str(data["threads"]), str(data["skills"])]
+            for channel, data in stats["by_channel"].items()
+        ]
+        _print(_table(["CHANNEL", "THREADS", "SKILLS"], rows))
+
+    if args.timeline:
+        _print("")
+        _print(bold("Timeline"))
+        rows = [
+            [week, str(data["ingested"]), str(data["distilled"])]
+            for week, data in stats["timeline"].items()
+        ]
+        _print(_table(["WEEK", "INGESTED", "DISTILLED"], rows))
     recent = store.list_events(limit=8)
     if recent:
         _print("")
@@ -729,6 +763,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     stats = sub.add_parser("stats", help="Show workspace statistics")
     stats.add_argument("--json", action="store_true")
+    stats.add_argument("--by-source", action="store_true", help="Show statistics by source")
+    stats.add_argument("--by-channel", action="store_true", help="Show statistics by channel")
+    stats.add_argument("--timeline", action="store_true", help="Show statistics over time")
     stats.set_defaults(func=cmd_stats)
 
     doctor = sub.add_parser("doctor", help="Check the local environment")
